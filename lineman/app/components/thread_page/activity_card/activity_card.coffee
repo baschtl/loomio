@@ -8,28 +8,20 @@ angular.module('loomioApp').directive 'activityCard', ->
     $scope.pageSize = 30
     $scope.firstLoadedSequenceId = 0
     $scope.lastLoadedSequenceId = 0
-    $scope.newActivitySequenceId = $scope.discussion.reader().lastReadSequenceId + 1
+    $scope.lastReadSequenceId = $scope.discussion.reader().lastReadSequenceId if $scope.discussion.isUnread()
     visibleSequenceIds = []
 
     $scope.init = ->
       $scope.discussion.markAsRead(0)
 
-      target = _.parseInt($location.hash())
-      # if target >= $scope.discussion.firstSequenceId and target < $scope.discussion.lastSequenceId 
-      #   # valid sequence id is specified in url
-      #   $scope.initialLoaded  = _.max [target - rollback, 0]
-      #   $scope.initialFocused = target
-      if $scope.discussion.isUnread()
-        # discussion is unread
-        $scope.initialLoaded  = _.max [$scope.discussion.reader().lastReadSequenceId - 1, 0]
-        $scope.initialFocused = $scope.discussion.reader().lastReadSequenceId + 1
-      else
-        # discussion is read
-        $scope.initialLoaded  = _.max [$scope.discussion.lastSequenceId - $scope.pageSize + 1, 0]
-        $scope.initialFocused = $scope.discussion.lastSequenceId
+      $scope.loadEventsForwards($scope.initialLoadSequenceId()).then ->
+        $rootScope.$broadcast 'threadPageEventsLoaded'
 
-      $scope.loadEventsForwards($scope.initialLoaded).then ->
-        $rootScope.$broadcast 'threadPageEventsLoaded', $scope.initialFocused
+    $scope.initialLoadSequenceId = ->
+      if $scope.discussion.isUnread()
+        $scope.discussion.reader().lastReadSequenceId - 1
+      else
+        $scope.discussion.lastSequenceId - $scope.pageSize + 1
 
     $scope.beforeCount = ->
       $scope.firstLoadedSequenceId - $scope.discussion.firstSequenceId

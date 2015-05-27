@@ -2,24 +2,30 @@ angular.module('loomioApp').controller 'ThreadPageController', ($scope, $routePa
   $rootScope.$broadcast('currentComponent', { page: 'threadPage'})
 
   @performScroll = ->
-    focusedElement = @focusedElement()
-    if focusedElement && !@scrolledAlready
-      ScrollService.scrollTo focusedElement
+    elementToFocus = @elementToFocus()
+    if elementToFocus && !@scrolledAlready
+      ScrollService.scrollTo elementToFocus
       @scrolledAlready = true
 
-  @focusedElement = ->
+  @elementToFocus = ->
     if $location.hash().match(/^proposal-\d+$/) and Records.proposals.find(@focusedProposalId)
       "#proposal-#{@focusedProposalId}"
-    else if @discussion.lastSequenceId == 0 or @discussion.reader().lastReadSequenceId == -1
+    else if @discussion.lastSequenceId == 0 or @sequenceIdToFocus == -1
       ".thread-context"
-    else if Records.events.findByDiscussionAndSequenceId(@discussion, @focusedSequenceId)
-      "#sequence-#{@focusedSequenceId}"
+    else if Records.events.findByDiscussionAndSequenceId(@discussion, @sequenceIdToFocus)
+      if @discussion.isUnread()
+        ".activity-card__new-activity"
+      else
+        "#sequence-#{@sequenceIdToFocus}"
+    else
+      false # our record isn't there yet
 
   @init = (discussion) =>
     if discussion and !@discussion?
       @discussion = discussion
       @group = @discussion.group()
-      
+      @sequenceIdToFocus = @discussion.reader().lastReadSequenceId # or location hash when we put it back in.
+
       $rootScope.$broadcast 'setTitle', @discussion.title
       $rootScope.$broadcast 'viewingThread', @discussion
 
@@ -30,9 +36,8 @@ angular.module('loomioApp').controller 'ThreadPageController', ($scope, $routePa
   Records.discussions.findOrFetchByKey($routeParams.key).then @init, (error) ->
     $rootScope.$broadcast('pageError', error)
 
-  $scope.$on 'threadPageEventsLoaded',    (event, sequenceId) =>
+  $scope.$on 'threadPageEventsLoaded',    (event) =>
     @eventsLoaded = true
-    @focusedSequenceId = sequenceId
     @performScroll() if @proposalsLoaded
   $scope.$on 'threadPageProposalsLoaded', (event, proposalId) =>
     @proposalsLoaded = true
