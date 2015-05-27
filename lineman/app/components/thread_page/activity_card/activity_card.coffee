@@ -10,24 +10,23 @@ angular.module('loomioApp').directive 'activityCard', ->
     $scope.lastLoadedSequenceId = 0
     $scope.newActivitySequenceId = $scope.discussion.reader().lastReadSequenceId + 1
     visibleSequenceIds = []
-    rollback = 2
 
     $scope.init = ->
       $scope.discussion.markAsRead(0)
 
       target = _.parseInt($location.hash())
-      if target >= $scope.discussion.firstSequenceId and target < $scope.discussion.lastSequenceId 
-        # valid sequence id is specified in url
-        $scope.initialLoaded  = _.max [target - rollback, 0]
-        $scope.initialFocused = target
-      else if $scope.discussion.isUnread()
+      # if target >= $scope.discussion.firstSequenceId and target < $scope.discussion.lastSequenceId 
+      #   # valid sequence id is specified in url
+      #   $scope.initialLoaded  = _.max [target - rollback, 0]
+      #   $scope.initialFocused = target
+      if $scope.discussion.isUnread()
         # discussion is unread
-        $scope.initialLoaded  = _.max [$scope.discussion.reader().lastReadSequenceId - rollback, 0]
-        $scope.initialFocused = $scope.initialLoaded + rollback
+        $scope.initialLoaded  = _.max [$scope.discussion.reader().lastReadSequenceId - 1, 0]
+        $scope.initialFocused = $scope.discussion.reader().lastReadSequenceId + 1
       else
         # discussion is read
         $scope.initialLoaded  = _.max [$scope.discussion.lastSequenceId - $scope.pageSize + 1, 0]
-        $scope.initialFocused = _.max [$scope.discussion.lastSequenceId - rollback, 0]
+        $scope.initialFocused = $scope.discussion.lastSequenceId
 
       $scope.loadEventsForwards($scope.initialLoaded).then ->
         $rootScope.$broadcast 'threadPageEventsLoaded', $scope.initialFocused
@@ -53,7 +52,7 @@ angular.module('loomioApp').directive 'activityCard', ->
     $scope.threadItemVisible = (item) ->
       addSequenceId(item.sequenceId)
       $scope.discussion.markAsRead(item.sequenceId)
-      $location.hash(_.min(visibleSequenceIds))
+      # $location.hash(_.min(visibleSequenceIds))
       $scope.loadEventsForwards($scope.lastLoadedSequenceId) if $scope.loadMoreAfterReading(item)
 
     $scope.loadEvents = ({from, per}) ->
